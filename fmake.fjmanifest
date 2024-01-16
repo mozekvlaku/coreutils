@@ -1,0 +1,133 @@
+{
+    "name": "coreutils",
+    "version": "3.2.0",
+    "author": {
+        "name": "Tomáš Kracík",
+        "email": "kracik@vespotok.net",
+        "url": ""
+    },
+    "licence": "Apache-2.0",
+    "context": {
+        "version": ">3.2.0",
+        "distros": [
+            "openfujin",
+            "*"
+        ]
+    },
+    "targets": [
+        {
+            "destination": "/etc/inittab",
+            "sources": [
+                "/src/config_files/initialization_sequence"
+            ],
+            "mode": "fsource",
+            "type": "iniconfig",
+            "minify": false,
+            "binary": false
+        },
+        {
+            "destination": "/bin/pwd",
+            "sources": [
+                "/src/pwd"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        },
+        {
+            "destination": "/bin/auth",
+            "sources": [
+                "/src/auth"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        },{
+            "destination": "/bin/fjsysd",
+            "sources": [
+                "/src/fjsysd"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        },{
+            "destination": "/bin/ls",
+            "sources": [
+                "/src/ls"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        },{
+            "destination": "/bin/pwd",
+            "sources": [
+                "/src/pwd"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        },{
+            "destination": "/bin/rmdir",
+            "sources": [
+                "/src/rmdir"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        },{
+            "destination": "/bin/sh",
+            "sources": [
+                "/src/sh"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        },{
+            "destination": "/bin/sudo",
+            "sources": [
+                "/src/sudo"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        },
+        {
+            "destination": "/bin/uname",
+            "sources": [
+                "/src/uname"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        },{
+            "destination": "/bin/useradd",
+            "sources": [
+                "/src/useradd"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        },{
+            "destination": "/bin/users",
+            "sources": [
+                "/src/users"
+            ],
+            "mode": "fsource",
+            "type": "util",
+            "minify": true,
+            "binary": true
+        }
+        
+    ],
+    "make": "dist"
+}

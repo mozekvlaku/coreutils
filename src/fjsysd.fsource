@@ -1,0 +1,227 @@
+<?php
+/**
+ * [Fujin Executable]
+ * 
+ * Vespotok Fujin Init Daemon
+ * 
+ * Copyright (c) 2022 Vespotok veDev
+ * 
+ * @package     CoreApps
+ * @subpackage  Fujin SysD
+ * @author      Vespotok veDev - Tomáš Kracík <kracik@vespotok.net>
+ */
+
+namespace Fujin\ConsoleApps;
+
+use Fujin\Framework\Kernel\ConsoleApplication;
+use Fujin\Kernel\Fujin;
+use Exception;
+use Fujin\Kernel\Obj\EndpointEnum;
+use Fujin\Kernel\Obj\Executable;
+
+class fjsysd extends ConsoleApplication
+{
+    // Default init executables
+    private const DEFAULT_GETTY     = "/bin/sh";
+    private const DEFAULT_GUI       = "/bin/sh";
+    private const DEFAULT_GUIAUTH   = "/bin/sh";
+    private const DEFAULT_APISHELL  = "/bin/sh";
+
+    // TTYs and GUIs
+    private const NUM_OF_TTYS = 1;
+    private const NUM_OF_GDIS = 0;
+    private const NUM_OF_APIS = 0;
+    private const TTY = "tty";
+    private const GDI = "jsd";
+    private const STD = "stdout";
+    private const API = "apd";
+
+    // Runtime init executables
+    private string $user_shell;
+    private string $user_gui;
+
+    // Misc constants
+    private const OK = "[[32m  OK  [37m]";
+
+    protected function main(array $args): void
+    {
+
+        $this->user_shell = self::DEFAULT_GETTY;
+
+        $io = Fujin::IIO($this->me);
+        $kernel = Fujin::c();
+        $this->fn("boot", function () {
+            Fujin::IHousekeeping($this->me)->instructions($this->prepare_inittab());
+        });
+        $this->fn("echo", function ($msg) use ($io) {
+            $io->println($msg);
+        });
+        $this->fn("getty", function ($display) use ($kernel, $io) {
+            $session = $kernel->sci_task_exists($this->user_shell, $display);
+            if ($session == false) {
+                $session = $kernel->sci_start_process($this->user_shell, $this->me, USER, $display);
+                $kernel->sci_send_message($session, "init(1)");
+                $kernel->sci_set_task($session, $display);
+                $io->print(self::OK . " Init done on /dev/" . $display);
+            }
+        });
+        $this->fn("progress", function ($percentage, $message) {
+            echo json_encode([
+                'progress' => (int)$percentage,
+                'message' => $message
+            ]);
+        });
+        $this->fn("boot_modules", function () use ($io) {
+            $io->println(self::OK . ' loaded kernel objects');
+            $io->print(self::OK . ' guiserver preparing...');
+        });
+
+        $this->fn("reboot", function() {
+            Fujin::IHousekeeping($this->me)->reboot_system();
+        });
+        $this->fn("shut_down", function() {
+            Fujin::IHousekeeping($this->me)->shutdown_system();
+        });
+
+        $this->fn("show_bootscreen", function() {
+            Fujin::IHousekeeping($this->me)->guimode(true);
+        });
+
+        $this->fn("runlevel", function($runlevel) {
+            Fujin::IHousekeeping($this->me)->runlevel($runlevel);
+        });
+
+        $this->fn("show_runtime_info", function () use ($io) {
+            $io->println('   _|_|                                  _|_|_|_|            _|  _|            ');
+            $io->println(' _|    _|  _|_|_|      _|_|    _|_|_|    _|        _|    _|          _|_|_|    ');
+            $io->println(' _|    _|  _|    _|  _|_|_|_|  _|    _|  _|_|_|    _|    _|  _|  _|  _|    _|  ');
+            $io->println(' _|    _|  _|    _|  _|        _|    _|  _|        _|    _|  _|  _|  _|    _|  ');
+            $io->println('   _|_|    _|_|_|      _|_|_|  _|    _|  _|          _|_|_|  _|  _|  _|    _|  ');
+            $io->println('           _|                                                _|                ');
+            $io->println('           _|                                              _|                  ');
+            $io->println();
+            $io->println(VER);
+            $io->println();
+            $io->println(self::OK . ' inittab loaded');
+            $io->print(self::OK . ' preparing to boot modules');
+        });
+        $this->ms_exist(function () {
+            $args = explode(" ", $this->args);
+            $this->parse_builtins($args);
+        });
+    }
+
+    private function parse_builtins(array $args) : void
+    {
+        $command = $args[0];
+        array_shift($args);
+        $data = implode(" ", $args);
+        $parent = $this->me->get_parent();
+        switch ($command) {
+            default:
+                $this->execute_exe($command, $data);
+                break;
+        }
+    }
+
+    private function execute_exe(string $path, string $data = "") : void
+    {
+        try {
+            $new_process = $this->kernel->sci_start_process($path, $this->me->__task_pid, $this->me->get_owner(), $this->me->get_display());
+            $this->kernel->sci_send_message($new_process, $data);
+            $this->kernel->sci_invoke_process($new_process);
+        } catch (Exception $e) {
+            $this->print_err($e->getMessage());
+        }
+    }
+        
+        /*if ($args == "get_graphical_client(1)") {
+        }
+        else
+        {
+            $io = Fujin::IIO($this->me);
+            $kernel = Fujin::c();
+            $io->println("Welcome to Fujin! You are running " . VER);
+            $io->println();
+            $io->println("Started fjsysd.");
+            $io->println("Expecting user data.");
+
+            $this->user_shell = static::DEFAULT_GETTY;
+            if (USER != "guest") {
+
+                if (!isset($_SESSION["FJACC_SETTINGS"]["GUI"]))
+                    $this->user_gui = static::DEFAULT_GUI;
+                else
+                    $this->user_gui = $_SESSION["FJACC_SETTINGS"]["GUI"];
+                $io->println(static::OK . " User data found.");
+            } else {
+                $this->user_gui = static::DEFAULT_GUIAUTH;
+                $io->println(static::OK . " User not found. Setting login shell on $this->user_shell.");
+            }
+
+            $io->println(static::OK . " Including session details.");
+            $io->println("Expecting prompt");
+            $io->setprompt(">_");
+            $io->println(static::OK . " Prompt and constate found.");
+            $session = $kernel->sci_task_exists($this->user_shell, self::STD);
+            if ($session == false) {
+                $session = $kernel->sci_start_process($this->user_shell, $this->me, USER, self::STD);
+                $kernel->sci_send_message($session, "init(1)");
+                $kernel->sci_set_task($session, static::STD);
+                $io->println(static::OK . " Init done on /dev/" . static::STD);
+            }
+            $kernel->sci_set_task($session, self::STD);
+            for ($i = 0; $i <= static::NUM_OF_TTYS; $i++) {
+                $tty_session = $kernel->sci_task_exists($this->user_shell, static::TTY . $i);
+                if ($tty_session == false) {
+                    $tty_session = $kernel->sci_start_process($this->user_shell, $this->me, USER, static::TTY . $i);
+                    $kernel->sci_send_message($tty_session, "init(1)");
+                    $kernel->sci_set_task($tty_session, static::TTY . $i);
+                    $io->println(static::OK . " Init done on /dev/" . static::TTY . $i);
+                }
+                $kernel->sci_set_task($tty_session, static::TTY . $i);
+            }
+            for ($i = 0; $i < static::NUM_OF_GDIS; $i++) {
+                $gdi_session = $kernel->sci_task_exists($this->user_gui, self::GDI . $i);
+                if ($gdi_session == false) {
+                    $gdi_session = $kernel->sci_start_process($this->user_gui, $this->me, USER, self::GDI . $i);
+                    $kernel->sci_invoke_process($gdi_session, "wallpaper");                    
+                    $kernel->sci_set_task($gdi_session, static::GDI . $i);
+                    $io->println(static::OK . " Init done on /dev/" . static::GDI . $i);
+                }
+                $kernel->sci_set_task($gdi_session, static::GDI . $i);
+            }
+            for ($i = 0; $i < static::NUM_OF_APIS; $i++) {
+                $api_session = $kernel->sci_task_exists(self::DEFAULT_APISHELL, self::API . $i);
+                if ($api_session == false) {
+                    $api_session = $kernel->sci_start_process(self::DEFAULT_APISHELL, $this->me, USER, self::API . $i);
+                    $kernel->sci_send_message($api_session, "init(1)");
+                    $kernel->sci_set_task($api_session, static::API . $i);
+                    $io->println(static::OK . " Init done on /dev/" . static::API . $i);
+                }
+                $kernel->sci_set_task($api_session, static::API . $i);
+            }
+            $io->println(static::OK . " Fujin successfully booted.");
+        }*/
+
+
+    private function prepare_inittab() : array {
+        $inittab = explode("\n", file_get_contents(FUJIN_ROOT . '/etc/inittab'));
+        $instructions = [];
+        foreach($inittab as $tab)
+        {
+            if($tab == '')
+                continue;
+            $tab = explode(":", $tab);
+            array_push($instructions, [
+                'id' => $tab[0],
+                'runlevel' => (int) $tab[1],
+                'action' => $tab[2],
+                'delay' => (int) $tab[3],
+                'process' => trim($tab[4])
+            ]);
+        }
+        return $instructions;
+    }
+}
+?>
